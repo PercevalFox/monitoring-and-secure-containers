@@ -1,0 +1,51 @@
+- rule: Unauthorized File Access
+  desc: Detects access to sensitive files by unexpected processes
+  condition: >
+    (fd.name startswith /etc/ or fd.name startswith /root/) and
+    (not user.name in (root, admin))
+  output: >
+    Unauthorized file access detected (user: %user.name%, file: %fd.name%)
+  priority: WARNING
+  tags: [filesystem, sensitive]
+
+- rule: Container Command Execution
+  desc: Detects execution of commands in a container
+  condition: >
+    container and
+    proc.name in (bash, sh, execve) and
+    container.id != host.container_id
+  output: >
+    Command execution detected in container (container id: %container.id%, process: %proc.name%)
+  priority: ALERT
+  tags: [container, execution]
+
+- rule: Suspicious Volume Mount
+  desc: Detects suspicious volume mounts
+  condition: >
+    container and
+    container.volume_mounts contains /host
+  output: >
+    Suspicious volume mount detected (container id: %container.id%, volume: %container.volume_mounts%)
+  priority: ALERT
+  tags: [container, volume]
+
+- rule: Unusual Network Connection
+  desc: Detects network connections to unusual ports
+  condition: >
+    (fd.sport not in (80, 443, 22)) and
+    fd.type = stream
+  output: >
+    Unusual network connection detected (source port: %fd.sport%, destination: %fd.dport%)
+  priority: WARNING
+  tags: [network, suspicious]
+
+- rule: Configuration File Change
+  desc: Detects modifications to system configuration files
+  condition: >
+    fd.name startswith /etc/ and
+    (evt.type = open or evt.type = write) and
+    not user.name in (root)
+  output: >
+    Configuration file change detected (file: %fd.name%, user: %user.name%)
+  priority: ERROR
+  tags: [filesystem, configuration]
